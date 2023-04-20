@@ -5,10 +5,17 @@
 
 // #define DEBUG_SERIAL Serial
 
+// On Lolin C3 Pico or Mini v2 uncomment following line and comment following 3 lines
+// #define LED_BUILTIN_WS2812 7 
 #define LED_PIN LED_BUILTIN
-
 #define LED_ON HIGH
 #define LED_OFF LOW
+
+#ifdef LED_BUILTIN_WS2812
+#include <Adafruit_NeoPixel.h>
+Adafruit_NeoPixel pixels(1, LED_BUILTIN_WS2812, NEO_GRB + NEO_KHZ800);
+#define LED_WS2812_BRIGHTNESS 50
+#endif
 
 bool bmp280_status;
 Adafruit_BMP280 bmp; // I2C
@@ -161,6 +168,39 @@ void updateTemperature()
   }
 }
 
+void ledInit()
+{
+#ifdef LED_PIN
+  pinMode(LED_PIN, OUTPUT);
+#endif
+#ifdef LED_BUILTIN_WS2812
+  pixels.begin(); // INITIALIZE NeoPixel strip object (REQUIRED)
+#endif
+}
+
+void ledOn()
+{
+#ifdef LED_PIN
+  digitalWrite(LED_PIN, LED_ON);
+#endif
+#ifdef LED_BUILTIN_WS2812
+    pixels.setPixelColor(0, pixels.Color(LED_WS2812_BRIGHTNESS, LED_WS2812_BRIGHTNESS, LED_WS2812_BRIGHTNESS));
+    pixels.show();
+#endif
+}
+
+void ledOff()
+{
+#ifdef LED_PIN
+  digitalWrite(LED_PIN, LED_OFF);
+#endif
+#ifdef LED_BUILTIN_WS2812
+    pixels.setPixelColor(0, pixels.Color(0, 0, 0));
+    pixels.show();
+#endif
+}
+
+
 void show_state_serial()
 {
   static unsigned long timeout_millis_serial = millis();
@@ -207,11 +247,11 @@ void updateWebUI() {
   m_button_d.setValue((m_button.status() == EmbAJAXMomentaryButton::Pressed) ? "On" : "Off");
   if (m_button.status() == EmbAJAXMomentaryButton::Pressed)
   {
-    digitalWrite(LED_PIN, LED_ON);
+    ledOn();
   }
   else
   {
-    digitalWrite(LED_PIN, LED_OFF);
+    ledOff();
   }
 }
 
@@ -224,15 +264,15 @@ void setup() {
 #endif
 
   // Flash LED 2x to show there's a reboot
-  pinMode(LED_PIN, OUTPUT);
+  ledInit();
 
-  digitalWrite(LED_PIN, LED_ON);
+  ledOn();
   delay(10);
-  digitalWrite(LED_PIN, LED_OFF);
+  ledOff();
   delay(100);
-  digitalWrite(LED_PIN, LED_ON);
+  ledOn();
   delay(10);
-  digitalWrite(LED_PIN, LED_OFF);
+  ledOff();
 
   // Init BMP280
   // Wire.begin(SDA_PIN,SCL_PIN); // SDA_PIN,SCL_PIN
